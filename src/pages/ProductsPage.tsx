@@ -1,18 +1,48 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Package, Plus, Search, Edit, Trash2, AlertTriangle } from 'lucide-react'
+import { getProducts, ProductResponse } from '../api/client'
+import { useAuth } from '../contexts/AuthContext'
 
-// Mock product data
-const mockProducts = [
-  { productId: 1, name: 'Coca Cola 330ml', barcode: '1234567890123', unitPrice: 5.50, stockQuantity: 100, criticalQuantity: 20 },
-  { productId: 2, name: 'Ekmek', barcode: '1234567890124', unitPrice: 2.00, stockQuantity: 5, criticalQuantity: 10 },
-  { productId: 3, name: 'Süt 1L', barcode: '1234567890125', unitPrice: 8.75, stockQuantity: 75, criticalQuantity: 15 },
-  { productId: 4, name: 'Yoğurt 500g', barcode: '1234567890126', unitPrice: 6.25, stockQuantity: 60, criticalQuantity: 25 },
-  { productId: 5, name: 'Domates 1kg', barcode: '1234567890127', unitPrice: 12.00, stockQuantity: 8, criticalQuantity: 15 }
-]
+interface UIProduct {
+  productId: number
+  name: string
+  barcode: string
+  unitPrice: number
+  stockQuantity: number
+  criticalQuantity?: number | null
+}
 
 const ProductsPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('')
-  const [products] = useState(mockProducts)
+  const { isAuthenticated } = useAuth()
+  const [products, setProducts] = useState<UIProduct[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!isAuthenticated) return
+    let active = true
+    setLoading(true)
+    getProducts()
+      .then(data => {
+        if (!active) return
+        const mapped: UIProduct[] = data.map(p => ({
+          productId: p.id,
+          name: p.name,
+          barcode: p.barcode || '-',
+          unitPrice: p.unitPrice,
+          stockQuantity: p.stockQuantity,
+          criticalQuantity: (p as any).criticalQuantity ?? null
+        }))
+        setProducts(mapped)
+      })
+      .catch(err => {
+        if (!active) return
+        setError(err.message || 'Ürünler alınırken hata oluştu')
+      })
+      .finally(() => active && setLoading(false))
+    return () => { active = false }
+  }, [isAuthenticated])
 
   const filteredProducts = products.filter(product =>
     product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -20,7 +50,7 @@ const ProductsPage: React.FC = () => {
   )
 
   const lowStockProducts = products.filter(product => 
-    product.stockQuantity <= (product.criticalQuantity || 0)
+    product.criticalQuantity != null && product.stockQuantity <= (product.criticalQuantity || 0)
   )
 
   return (
@@ -51,6 +81,12 @@ const ProductsPage: React.FC = () => {
               </span>
             ))}
           </div>
+        </div>
+      )}
+
+      {error && (
+        <div className="bg-error-50 border border-error-200 text-error-700 p-4 rounded-lg text-sm">
+          {error}
         </div>
       )}
 
@@ -91,7 +127,22 @@ const ProductsPage: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {filteredProducts.map((product) => (
+                {loading && (
+                  <tr>
+                    <td colSpan={7} className="py-6 text-center text-gray-500 text-sm">Yükleniyor...</td>
+                  </tr>
+                )}
+                {!loading && filteredProducts.length === 0 && (
+                  <tr>
+                    <td colSpan={7} className="py-10 text-center text-gray-500 text-sm">
+                      <div className="flex flex-col items-center gap-2">
+                        <Package className="h-10 w-10 text-gray-300" />
+                        Ürün bulunamadı
+                      </div>
+                    </td>
+                  </tr>
+                )}
+                {!loading && filteredProducts.map((product) => (
                   <tr key={product.productId} className="hover:bg-gray-50">
                     <td className="py-3 px-4">
                       <div className="font-medium text-gray-900">{product.name}</div>
@@ -141,13 +192,6 @@ const ProductsPage: React.FC = () => {
               </tbody>
             </table>
           </div>
-          
-          {filteredProducts.length === 0 && (
-            <div className="text-center py-8 text-gray-500">
-              <Package className="h-12 w-12 mx-auto mb-2 text-gray-300" />
-              <p>Ürün bulunamadı</p>
-            </div>
-          )}
         </div>
       </div>
     </div>

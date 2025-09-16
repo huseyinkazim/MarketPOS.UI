@@ -1,32 +1,62 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useCart } from '../contexts/CartContext'
 import { Search, Scan, Plus, Package } from 'lucide-react'
+import { getProducts, ProductResponse } from '../api/client'
+import { useAuth } from '../contexts/AuthContext'
 
-// Mock product data
-const mockProducts = [
-  { productId: 1, name: 'Coca Cola 330ml', barcode: '1234567890123', unitPrice: 5.50, stockQuantity: 100 },
-  { productId: 2, name: 'Ekmek', barcode: '1234567890124', unitPrice: 2.00, stockQuantity: 50 },
-  { productId: 3, name: 'Süt 1L', barcode: '1234567890125', unitPrice: 8.75, stockQuantity: 75 },
-  { productId: 4, name: 'Yoğurt 500g', barcode: '1234567890126', unitPrice: 6.25, stockQuantity: 60 },
-  { productId: 5, name: 'Domates 1kg', barcode: '1234567890127', unitPrice: 12.00, stockQuantity: 30 }
-]
+interface UIProduct {
+  productId: number
+  name: string
+  barcode: string
+  unitPrice: number
+  stockQuantity: number
+}
 
 const ProductSearch: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('')
-  const [searchResults, setSearchResults] = useState(mockProducts)
+  const [products, setProducts] = useState<UIProduct[]>([])
+  const [searchResults, setSearchResults] = useState<UIProduct[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const { addItem } = useCart()
+  const { isAuthenticated } = useAuth()
+
+  useEffect(() => {
+    if (!isAuthenticated) return
+    let active = true
+    setLoading(true)
+    getProducts()
+      .then(data => {
+        if (!active) return
+        const mapped: UIProduct[] = data.map(p => ({
+          productId: p.id,
+          name: p.name,
+          barcode: p.barcode || '-',
+          unitPrice: p.unitPrice,
+          stockQuantity: p.stockQuantity
+        }))
+        setProducts(mapped)
+        setSearchResults(mapped)
+      })
+      .catch(err => {
+        if (!active) return
+        setError(err.message || 'Ürünler alınırken hata')
+      })
+      .finally(() => active && setLoading(false))
+    return () => { active = false }
+  }, [isAuthenticated])
 
   const handleSearch = (term: string) => {
     setSearchTerm(term)
     if (term.trim() === '') {
-      setSearchResults(mockProducts)
-    } else {
-      const filtered = mockProducts.filter(product =>
-        product.name.toLowerCase().includes(term.toLowerCase()) ||
-        product.barcode.includes(term)
-      )
-      setSearchResults(filtered)
+      setSearchResults(products)
+      return
     }
+    const filtered = products.filter(product =>
+      product.name.toLowerCase().includes(term.toLowerCase()) ||
+      product.barcode.includes(term)
+    )
+    setSearchResults(filtered)
   }
 
   const handleBarcodeSearch = () => {
@@ -57,7 +87,13 @@ const ProductSearch: React.FC = () => {
       </div>
 
       <div className="grid gap-3 max-h-96 overflow-y-auto">
-        {searchResults.map((product) => (
+        {loading && (
+          <div className="text-center py-6 text-sm text-gray-500">Yükleniyor...</div>
+        )}
+        {error && (
+          <div className="text-center py-6 text-sm text-error-600">{error}</div>
+        )}
+        {!loading && !error && searchResults.map((product) => (
           <div key={product.productId} className="product-card">
             <div className="flex items-center justify-between">
               <div className="flex-1">
@@ -84,7 +120,7 @@ const ProductSearch: React.FC = () => {
           </div>
         ))}
         
-        {searchResults.length === 0 && (
+        {!loading && !error && searchResults.length === 0 && (
           <div className="text-center py-8 text-gray-500">
             <Package className="h-12 w-12 mx-auto mb-2 text-gray-300" />
             <p>Ürün bulunamadı</p>

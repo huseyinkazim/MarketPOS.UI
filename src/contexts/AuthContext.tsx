@@ -1,10 +1,13 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
+import Api, { setAccessToken, loginApi } from '../api/client'
 
 interface User {
   userId: number
   username: string
   fullName: string
   role: string
+  token?: string
+  refreshToken?: string
 }
 
 interface AuthContextType {
@@ -29,35 +32,47 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isAuthenticated, setIsAuthenticated] = useState(false)
 
   useEffect(() => {
-    // Check if user is already logged in
-    const savedUser = localStorage.getItem('pos_user')
-    if (savedUser) {
-      setUser(JSON.parse(savedUser))
-      setIsAuthenticated(true)
+    const savedAuth = localStorage.getItem('pos_auth')
+    if (savedAuth) {
+      try {
+        const parsed = JSON.parse(savedAuth)
+        setUser(parsed.user)
+        setIsAuthenticated(true)
+        setAccessToken(parsed.token)
+      } catch {}
     }
   }, [])
 
   const login = async (username: string, password: string): Promise<boolean> => {
-    // Demo login - in real app, this would call your API
-    if (username === 'admin' && password === 'admin') {
-      const user = {
-        userId: 1,
-        username: 'admin',
-        fullName: 'Yönetici',
-        role: 'Admin'
+    try {
+      const res = await loginApi({ username, password })
+      if (res.token) {
+        setAccessToken(res.token)
+        const u: User = {
+          userId: res.user?.id || 0,
+            username: res.user?.username || username,
+            fullName: res.user?.fullName || username,
+            role: res.user?.role || 'User',
+            token: res.token,
+            refreshToken: res.refreshToken
+        }
+        setUser(u)
+        setIsAuthenticated(true)
+        localStorage.setItem('pos_auth', JSON.stringify({ token: res.token, refreshToken: res.refreshToken, user: u }))
+        return true
       }
-      setUser(user)
-      setIsAuthenticated(true)
-      localStorage.setItem('pos_user', JSON.stringify(user))
-      return true
+      return false
+    } catch (e) {
+      console.error('Login failed', e)
+      return false
     }
-    return false
   }
 
   const logout = () => {
     setUser(null)
     setIsAuthenticated(false)
-    localStorage.removeItem('pos_user')
+    localStorage.removeItem('pos_auth')
+    setAccessToken(null)
   }
 
   return (
