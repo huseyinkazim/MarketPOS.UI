@@ -5,15 +5,16 @@ interface CartItem {
   name: string
   barcode: string
   unitPrice: number
-  quantity: number
+  quantity: number // artık ondalık destekler
   totalPrice: number
 }
 
 interface CartContextType {
   items: CartItem[]
-  addItem: (product: any) => void
+  addItem: (product: any, qty?: number) => void
   removeItem: (productId: number) => void
   updateQuantity: (productId: number, quantity: number) => void
+  setQuantityDirect: (productId: number, quantity: number) => void
   clearCart: () => void
   getTotalAmount: () => number
   getTotalItems: () => number
@@ -32,13 +33,13 @@ export const useCart = () => {
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [items, setItems] = useState<CartItem[]>([])
 
-  const addItem = (product: any) => {
+  const addItem = (product: any, qty: number = 1) => {
     setItems(prev => {
       const existingItem = prev.find(item => item.productId === product.productId)
       if (existingItem) {
         return prev.map(item =>
           item.productId === product.productId
-            ? { ...item, quantity: item.quantity + 1, totalPrice: (item.quantity + 1) * item.unitPrice }
+            ? { ...item, quantity: parseFloat((item.quantity + qty).toFixed(3)), totalPrice: parseFloat(((item.quantity + qty) * item.unitPrice).toFixed(2)) }
             : item
         )
       }
@@ -47,8 +48,8 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         name: product.name,
         barcode: product.barcode,
         unitPrice: product.unitPrice,
-        quantity: 1,
-        totalPrice: product.unitPrice
+        quantity: qty,
+        totalPrice: parseFloat((qty * product.unitPrice).toFixed(2))
       }]
     })
   }
@@ -65,10 +66,14 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setItems(prev =>
       prev.map(item =>
         item.productId === productId
-          ? { ...item, quantity, totalPrice: quantity * item.unitPrice }
+          ? { ...item, quantity: parseFloat(quantity.toFixed(3)), totalPrice: parseFloat((quantity * item.unitPrice).toFixed(2)) }
           : item
       )
     )
+  }
+
+  const setQuantityDirect = (productId: number, quantity: number) => {
+    updateQuantity(productId, quantity)
   }
 
   const clearCart = () => {
@@ -88,7 +93,8 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       items,
       addItem,
       removeItem,
-      updateQuantity,
+  updateQuantity,
+  setQuantityDirect,
       clearCart,
       getTotalAmount,
       getTotalItems

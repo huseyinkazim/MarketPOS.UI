@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { Package, Plus, Search, Edit, Trash2, AlertTriangle } from 'lucide-react'
-import { getProducts, ProductResponse } from '../api/client'
+import { getProducts, deleteProduct, ProductResponse } from '../api/client'
 import { useAuth } from '../contexts/AuthContext'
+import ProductFormModal from '../components/ProductFormModal'
 
 interface UIProduct {
   productId: number
@@ -18,6 +19,10 @@ const ProductsPage: React.FC = () => {
   const [products, setProducts] = useState<UIProduct[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [refreshFlag, setRefreshFlag] = useState(0)
+  const [showModal, setShowModal] = useState(false)
+  const [editProduct, setEditProduct] = useState<ProductResponse | null>(null)
+  const [deletingId, setDeletingId] = useState<number | null>(null)
 
   useEffect(() => {
     if (!isAuthenticated) return
@@ -42,7 +47,38 @@ const ProductsPage: React.FC = () => {
       })
       .finally(() => active && setLoading(false))
     return () => { active = false }
-  }, [isAuthenticated])
+  }, [isAuthenticated, refreshFlag])
+
+  const openCreate = () => { setEditProduct(null); setShowModal(true) }
+  const openEdit = (p: UIProduct) => {
+    // UIProduct'tan ProductResponse'a asgari alanlar
+    const pr: ProductResponse = {
+      id: p.productId,
+      name: p.name,
+      barcode: p.barcode === '-' ? null : p.barcode,
+      categoryId: null,
+      unitPrice: p.unitPrice,
+      taxRate: 18,
+      stockQuantity: p.stockQuantity,
+      isActive: true,
+      criticalQuantity: p.criticalQuantity ?? null
+    }
+    setEditProduct(pr); setShowModal(true)
+  }
+  const onSaved = () => setRefreshFlag(f => f + 1)
+
+  const handleDelete = async (id: number) => {
+    if (!confirm('Bu ürünü silmek istediğinize emin misiniz?')) return
+    setDeletingId(id)
+    try {
+      await deleteProduct(id)
+      setProducts(prev => prev.filter(p => p.productId !== id))
+    } catch (e:any) {
+      alert(e.message || 'Silme başarısız')
+    } finally {
+      setDeletingId(null)
+    }
+  }
 
   const filteredProducts = products.filter(product =>
     product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -54,11 +90,12 @@ const ProductsPage: React.FC = () => {
   )
 
   return (
+    <>
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900">Ürün Yönetimi</h1>
-        <button className="btn-primary">
+        <button className="btn-primary" onClick={openCreate}>
           <Plus className="h-5 w-5" />
           Yeni Ürün
         </button>
@@ -179,11 +216,11 @@ const ProductsPage: React.FC = () => {
                     </td>
                     <td className="py-3 px-4 text-right">
                       <div className="flex items-center justify-end gap-2">
-                        <button className="text-primary-600 hover:text-primary-700">
+                         <button className="text-primary-600 hover:text-primary-700" onClick={() => openEdit(product)}>
                           <Edit className="h-4 w-4" />
                         </button>
-                        <button className="text-error-600 hover:text-error-700">
-                          <Trash2 className="h-4 w-4" />
+                         <button className="text-error-600 hover:text-error-700 disabled:opacity-50" disabled={deletingId === product.productId} onClick={() => handleDelete(product.productId)}>
+                           <Trash2 className={`h-4 w-4 ${deletingId===product.productId? 'animate-pulse':''}`} />
                         </button>
                       </div>
                     </td>
@@ -195,6 +232,15 @@ const ProductsPage: React.FC = () => {
         </div>
       </div>
     </div>
+    {showModal && (
+      <ProductFormModal
+        open={showModal}
+        onClose={() => setShowModal(false)}
+        onSuccess={onSaved}
+        editProduct={editProduct}
+      />
+    )}
+    </>
   )
 }
 

@@ -82,6 +82,55 @@ export function getProducts() {
   return apiFetch<ProductResponse[]>('/api/Products', { auth: true })
 }
 
+export interface CreateProductRequest {
+  name: string
+  barcode?: string | null
+  categoryId?: number | null
+  unitPrice: number
+  taxRate: number
+  initialStock?: number
+  criticalQuantity?: number | null
+}
+
+export interface UpdateProductRequest {
+  name: string
+  barcode?: string | null
+  categoryId?: number | null
+  unitPrice: number
+  taxRate: number
+  isActive: boolean
+  criticalQuantity?: number | null
+}
+
+export function createProduct(payload: CreateProductRequest) {
+  return apiFetch<ProductResponse>('/api/Products', {
+    method: 'POST',
+    auth: true,
+    body: JSON.stringify(payload)
+  })
+}
+
+export function updateProduct(id: number, payload: UpdateProductRequest) {
+  return apiFetch<void>(`/api/Products/${id}`, {
+    method: 'PUT',
+    auth: true,
+    body: JSON.stringify(payload)
+  })
+}
+
+export function deleteProduct(id: number) {
+  return apiFetch<void>(`/api/Products/${id}`, {
+    method: 'DELETE',
+    auth: true
+  })
+}
+
+// Categories (listelemek için)
+export interface CategoryResponse { id: number; name: string; isActive: boolean }
+export function getCategories() {
+  return apiFetch<CategoryResponse[]>('/api/Categories', { auth: true })
+}
+
 // SALES
 export interface SaleItemCreateRequest {
   productId: number
@@ -128,6 +177,10 @@ export const Api = {
   loginApi,
   refreshApi,
   getProducts,
+  createProduct,
+  updateProduct,
+  deleteProduct,
+  getCategories,
   createSale,
   getLowInventory,
   getDailySummary

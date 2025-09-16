@@ -1,9 +1,10 @@
 import React from 'react'
 import { useCart } from '../contexts/CartContext'
-import { Minus, Plus, Trash2, ShoppingCart } from 'lucide-react'
+import { Trash2, ShoppingCart } from 'lucide-react'
+import QuantityInput from './QuantityInput'
 
 const Cart: React.FC = () => {
-  const { items, updateQuantity, removeItem, clearCart } = useCart()
+  const { items, updateQuantity, removeItem, clearCart, setQuantityDirect } = useCart() as any
 
   if (items.length === 0) {
     return (
@@ -15,10 +16,19 @@ const Cart: React.FC = () => {
     )
   }
 
+  type CartItemType = {
+    productId: number
+    name: string
+    barcode: string
+    unitPrice: number
+    quantity: number
+    totalPrice: number
+  }
+
   return (
     <div className="space-y-4">
-      <div className="space-y-3 max-h-64 overflow-y-auto">
-        {items.map((item) => (
+  <div className="space-y-3 max-h-[28rem] overflow-y-auto pr-1">
+  {items.map((item: CartItemType) => (
           <div key={item.productId} className="cart-item">
             <div className="flex items-center justify-between mb-2">
               <h3 className="font-medium text-gray-900 text-sm">{item.name}</h3>
@@ -32,24 +42,19 @@ const Cart: React.FC = () => {
             
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <button
-                  onClick={() => updateQuantity(item.productId, item.quantity - 1)}
-                  className="p-1 rounded text-gray-500 hover:text-gray-700 hover:bg-gray-200"
-                >
-                  <Minus className="h-4 w-4" />
-                </button>
-                <span className="w-8 text-center font-medium">{item.quantity}</span>
-                <button
-                  onClick={() => updateQuantity(item.productId, item.quantity + 1)}
-                  className="p-1 rounded text-gray-500 hover:text-gray-700 hover:bg-gray-200"
-                >
-                  <Plus className="h-4 w-4" />
-                </button>
+                <QuantityInput
+                  value={item.quantity}
+                  onChange={(v) => setQuantityDirect(item.productId, v)}
+                  step={0.1}
+                  min={0}
+                  size="md"
+                  decimals={3}
+                />
               </div>
               
               <div className="text-right">
                 <div className="text-sm text-gray-500">
-                  ₺{item.unitPrice.toFixed(2)} x {item.quantity}
+                  ₺{item.unitPrice.toFixed(2)} x {item.quantity.toFixed(3)}
                 </div>
                 <div className="font-semibold text-primary-600">
                   ₺{item.totalPrice.toFixed(2)}
