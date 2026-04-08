@@ -14,34 +14,56 @@ Gerçek dünya perakende senaryoları göz önünde bulundurularak geliştirilmi
 
 
 🏗️ Teknoloji Stack
+
 ⚛️ Frontend: React 18 + Vite
+
 🟦 Language: TypeScript
+
 🎨 UI: Tailwind CSS
+
 📦 State Management: (Redux / Zustand varsa ekle)
 🔐 Auth: (JWT)
+
 🐳 Container: Docker
+
 ⚙️ Özellikler
+
 🛒 Satış ve sepet yönetimi
+
 📦 Ürün katalog sistemi
+
 💰 Kasa ve bakiye takibi
+
 📊 Raporlama altyapısı
+
 🔐 Authentication sistemi
+
 🧠 Mimari Yaklaşım
 
 Bu proje sadece UI değil, gerçek sistem mantığıyla tasarlanmıştır:
 
 Component-based yapı
+
 Reusable UI pattern’leri
+
 API-first yaklaşım
+
 Modüler klasör yapısı
+
 Production-ready build (Docker + Nginx)
 
 Microservice uyumlu frontend tasarımı
+
 Event-driven sistemlere entegre edilebilir yapı
+
 🐳 Docker ile Çalıştırma
+
 Build
+
 docker build -t marketpos .
+
 Run
+
 docker run -d -p 3000:80 --name marketpos marketpos
 
 👉 Aç:
@@ -49,19 +71,27 @@ docker run -d -p 3000:80 --name marketpos marketpos
 http://localhost:3000
 
 💻 Local Development
+
 npm install
+
 npm run dev
 
 🚀 Roadmap
+
  Backend entegrasyonu (.NET Core API)
+	
  Redis cache
+	
  Offline satış desteği
+	
  Multi-tenant yapı
+	
  CI/CD pipeline
 
 🧑‍💻 Geliştirici Notu
 
 Bu proje, gerçek dünyadaki POS sistemlerinin ihtiyaçları düşünülerek
+
 performans, ölçeklenebilirlik ve kullanıcı deneyimi odağında geliştirilmiştir.
 
 📄 Lisans
